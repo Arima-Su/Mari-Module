@@ -263,13 +263,20 @@ namespace Alice_Module.Handlers
 
                     if (SlashComms._queueDictionary.ContainsKey(guild))
                     {
-                        SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        //SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        if (SlashComms._queueDictionary[guild][0] != null)
+                        {
+                            SlashComms._queueDictionary[guild].RemoveAt(0);
+                        }
+
+                        SlashComms._queueDictionary[guild].Insert(0, new song(track, ctx.User.Username));
                     }
                     else
                     {
                         SlashComms._queueDictionary.Add(guild, new List<song>());
                         await Task.Delay(100);
-                        SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        //SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        SlashComms._queueDictionary[guild].Insert(0, new song(track, ctx.User.Username));
                     }
 
                     PlaybackHandler.skipped = true;
@@ -329,13 +336,20 @@ namespace Alice_Module.Handlers
 
                     if (SlashComms._queueDictionary.ContainsKey(guild))
                     {
-                        SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        //SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        if (SlashComms._queueDictionary[guild][0] != null)
+                        {
+                            SlashComms._queueDictionary[guild].RemoveAt(0);
+                        }
+
+                        SlashComms._queueDictionary[guild].Insert(0, new song(track, ctx.User.Username));
                     }
                     else
                     {
                         SlashComms._queueDictionary.Add(guild, new List<song>());
                         await Task.Delay(100);
-                        SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        //SlashComms._queueDictionary[guild].Add(new song(track, ctx.User.Username));
+                        SlashComms._queueDictionary[guild].Insert(0, new song(track, ctx.User.Username));
                     }
 
                     PlaybackHandler.skipped = true;
