@@ -13,7 +13,7 @@ namespace Mari_Module.Handlers
         public static string RpcInit()
         {
             var rpc = Program.doc.Descendants("category")
-                .FirstOrDefault(category => category.Attribute("name")?.Value == "token")?
+                .FirstOrDefault(category => category.Attribute("name")?.Value == "rpcClient")?
                 .Element("entry");
 
             if (rpc == null)
@@ -22,6 +22,7 @@ namespace Mari_Module.Handlers
             }
 
             discordRpcClient = new DiscordRpcClient(rpc.Value);
+            discordRpcClient.Initialize();
 
             try
             {
@@ -46,7 +47,7 @@ namespace Mari_Module.Handlers
             return "pass";
         }
 
-        private void UpdateRichPresence(string details)
+        private static void UpdateRichPresence(string? details)
         {
             try
             {
@@ -59,7 +60,7 @@ namespace Mari_Module.Handlers
 
         }
 
-        private void UpdateRichBImage(string key, string tip)
+        public static void UpdateRichBImage(string key, string tip)
         {
             try
             {
@@ -83,7 +84,7 @@ namespace Mari_Module.Handlers
             }
         }
 
-        private void UpdateStatusRPC(string status)
+        private static void UpdateStatusRPC(string? status)
         {
             try
             {
@@ -95,7 +96,7 @@ namespace Mari_Module.Handlers
             }
         }
 
-        public static async Task UpdateUserStatus(DiscordClient client, string state, string title)
+        public static async Task UpdateUserStatus(DiscordClient? client, string state = "", string title = "", bool joined = true)
         {
             if (state == "LISTENING")
             {
@@ -110,20 +111,76 @@ namespace Mari_Module.Handlers
                 }
                 else
                 {
+                    if (client == null)
+                    {
+                        return;
+                    }
+
                     await client.UpdateStatusAsync(new DiscordActivity(title, DSharpPlus.Entities.ActivityType.ListeningTo), DSharpPlus.Entities.UserStatus.Idle);
+                    UpdateRichPresence(MessageHandler.GetRandomEntry("activestate"));
+                    UpdateStatusRPC(title);
                 }
             }
             else if (state == "IDLE")
             {
-                string? status = MessageHandler.GetRandomEntry("state");
+                if (client == null)
+                {
+                    return;
+                }
 
-                await client.UpdateStatusAsync(new DiscordActivity(status, DSharpPlus.Entities.ActivityType.Watching), DSharpPlus.Entities.UserStatus.Idle);
+                if (joined)
+                {
+                    UpdateRichPresence(MessageHandler.GetRandomEntry("waitingstate"));
+                }
+                else
+                {
+                    UpdateRichPresence(MessageHandler.GetRandomEntry("idlestate"));
+                }
+                
+                UpdateStatusRPC("");
+                await client.UpdateStatusAsync(new DiscordActivity(MessageHandler.GetRandomEntry("state"), DSharpPlus.Entities.ActivityType.Watching), DSharpPlus.Entities.UserStatus.Idle);
             }
             else if (state == "CONCURRENT")
             {
-                int num = SlashComms._queueDictionary.Count;
+                if (client == null)
+                {
+                    return;
+                }
 
-                await client.UpdateStatusAsync(new DiscordActivity($"in {num} servers..", DSharpPlus.Entities.ActivityType.Playing), DSharpPlus.Entities.UserStatus.Idle);
+                await client.UpdateStatusAsync(new DiscordActivity($"in {SlashComms._queueDictionary.Count} servers..", DSharpPlus.Entities.ActivityType.Playing), DSharpPlus.Entities.UserStatus.Idle);
+                UpdateRichPresence(MessageHandler.GetRandomEntry("activestate"));
+                UpdateStatusRPC($"Playing in {SlashComms._queueDictionary.Count} servers..");
+            }
+            else if (state == "STARTING")
+            {
+                UpdateRichPresence("Getting things ready..");
+            }
+            else if (state == "READY")
+            {
+                UpdateRichPresence(MessageHandler.GetRandomEntry("waitingstate"));
+                UpdateRichBImage("box", "sigh");
+            }
+            else if (state == "JOINED")
+            {
+                if (client == null)
+                {
+                    return;
+                }
+
+                UpdateRichPresence(MessageHandler.GetRandomEntry("joinedstate"));
+                UpdateStatusRPC("");
+                await client.UpdateStatusAsync(new DiscordActivity(MessageHandler.GetRandomEntry("state"), DSharpPlus.Entities.ActivityType.Watching), DSharpPlus.Entities.UserStatus.Idle);
+            }
+            else if (state == "LEFT")
+            {
+                if (client == null)
+                {
+                    return;
+                }
+
+                UpdateRichPresence(MessageHandler.GetRandomEntry("removedstate"));
+                UpdateStatusRPC($"");
+                await client.UpdateStatusAsync(new DiscordActivity(MessageHandler.GetRandomEntry("state"), DSharpPlus.Entities.ActivityType.Watching), DSharpPlus.Entities.UserStatus.Idle);
             }
 
             return;

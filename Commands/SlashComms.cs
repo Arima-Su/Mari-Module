@@ -6,13 +6,9 @@ using DSharpPlus.Entities;
 using DSharpPlus.Lavalink;
 using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using Mari_Module.Handlers;
+using Serilog;
 
 namespace Alice.Commands
 {
@@ -34,6 +30,7 @@ namespace Alice.Commands
             if (res != null)
             {
                 await ctx.FollowUpAsync(ResponseBuilder(res));
+                await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                 return;
             }
         }
@@ -318,7 +315,7 @@ namespace Alice.Commands
             }
 
             var trackInfo = "A gun was fired at the player, the queue is in pieces..";
-            Console.WriteLine("LAVALINK IS DISCONNECTED");
+            Log.Information("LAVALINK IS DISCONNECTED");
             // STOP COMMAND
 
             var ephemeralMessage = new DiscordInteractionResponseBuilder()
@@ -517,10 +514,11 @@ namespace Alice.Commands
                     PlaybackHandler.skipped = false;
                     _invited = false;
                     await conn.DisconnectAsync();
+                    await RpcHandler.UpdateUserStatus(ctx.Client, "LEFT");
                 }
                 else
                 {
-                    Console.WriteLine("No entries found for the specified category.");
+                    Log.Information("No entries found for the specified category.");
                 }
             }
         }
@@ -591,7 +589,7 @@ namespace Alice.Commands
                     var ephemeralMessage1 = new DiscordInteractionResponseBuilder()                          // BOT VOICESTATE VERIFY
                         .WithContent($"Removed {tune.getTrack().Title}")
                         .AsEphemeral(true);
-
+                    await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                     await ctx.CreateResponseAsync(ephemeralMessage1);
                     SlashComms._queueDictionary.Remove(guild);
                     await conn.StopAsync();
@@ -624,11 +622,11 @@ namespace Alice.Commands
                 PlaybackHandler.skipped = false;
                 if (SlashComms._queueDictionary.Count > 1)
                 {
-                    Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                    Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                 }
                 else
                 {
-                    Console.WriteLine($"***Now Playing: {nextTrackTitle} {nextTrack.getTrack().Author}***");
+                    Log.Information($"***Now Playing: {nextTrackTitle} {nextTrack.getTrack().Author}***");
                 }
                 await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", nextTrackTitle);
                 return;
@@ -690,11 +688,11 @@ namespace Alice.Commands
 
             if (SlashComms._queueDictionary.Count > 1)
             {
-                Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
             }
             else
             {
-                Console.WriteLine($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
+                Log.Information($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
             }
             await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
             PlaybackHandler.skipped = false;
@@ -757,7 +755,7 @@ namespace Alice.Commands
             {
                 var track = SlashComms._queueDictionary[guild][0];
                 await ctx.FollowUpAsync(ResponseBuilder($"Skipped {track.getTrack().Title} {track.getTrack().Author}"));
-                await RpcHandler.UpdateUserStatus(ctx.Client, "IDLE", "bocchi");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                 SlashComms._queueDictionary.Remove(guild);
                 await conn.StopAsync();
                 return;
@@ -784,11 +782,11 @@ namespace Alice.Commands
                 await ctx.FollowUpAsync(ResponseBuilder($"Skipped {track.getTrack().Title} {track.getTrack().Author}.."));
                 if (SlashComms._queueDictionary.Count > 1)
                 {
-                    Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                    Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                 }
                 else
                 {
-                    Console.WriteLine($"NOW PLAYING: {nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
+                    Log.Information($"NOW PLAYING: {nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
                 }
                 await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
                 PlaybackHandler.skipped = false;
@@ -808,7 +806,7 @@ namespace Alice.Commands
         }
 
         [SlashCommand("start", "Boots up the music player..")]
-        public async Task StartCommand(InteractionContext ctx)
+        public async Task StartCommand(InteractionContext ctx, bool cooked = false)
         {
             await ctx.DeferAsync(ephemeral: true);
             
@@ -819,6 +817,7 @@ namespace Alice.Commands
             }
 
             DiscordMessage f = await ctx.FollowUpAsync(ResponseBuilder("Ooh it's starting up.."));
+            await RpcHandler.UpdateUserStatus(ctx.Client, "STARTING", "", false);
 
             try
             {
@@ -850,11 +849,13 @@ namespace Alice.Commands
                 node.TrackException += PlaybackHandler.PlaybackErrorHandler;
 
                 await ctx.EditFollowupAsync(f.Id, ResponseEditBuilder("Oop, it's running.. there it goes.."));
-                Console.WriteLine("LAVALINK IS CONNECTED");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "READY", "", false);
+                Log.Information("LAVALINK IS CONNECTED");
             }
             catch
             {
-                Console.WriteLine("LAVALINK IS STARTING");
+                Log.Information("LAVALINK IS STARTING");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "STARTING", "", false);
                 await PlaybackHandler.StartLava();
 
                 var endpoint = new ConnectionEndpoint
@@ -885,7 +886,8 @@ namespace Alice.Commands
                 node.TrackException += PlaybackHandler.PlaybackErrorHandler;
 
                 await ctx.EditFollowupAsync(f.Id, ResponseEditBuilder("Oop, it's running.. there it goes.."));
-                Console.WriteLine("LAVALINK IS CONNECTED");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "READY", "", false);
+                Log.Information("LAVALINK IS CONNECTED");
 
                 if (SlashComms._failed == true)
                 {
@@ -1020,7 +1022,7 @@ namespace Alice.Commands
             }
             catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Information(ex.Message);
             }
 
             PlaybackHandler.forcestop = false;

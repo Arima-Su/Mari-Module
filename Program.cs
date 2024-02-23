@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Serilog;
 using System.Xml.Linq;
 using Mari_Module.Properties;
+using System.Text;
 
 namespace Mari_Module
 {
@@ -24,6 +25,9 @@ namespace Mari_Module
         //DATA
         public static XDocument doc = XDocument.Load("data.xml");
 
+        //LOG
+        public static RiverLog RiverLog = new RiverLog();
+
         //CREDENTIALS
         private static XElement? prefix;
         public static XElement? token;
@@ -32,6 +36,9 @@ namespace Mari_Module
 
         //CLIENT
         public static DiscordClient? discord;
+
+        //INTERNET
+        public static bool WiFI_desu = false;
 
         //PROCESSES
         public static Process? lavalink;
@@ -63,7 +70,15 @@ namespace Mari_Module
                     AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
                     #endregion
 
-                    StartUpSequence().GetAwaiter().GetResult();
+                    if (!IsConnectedToInternet().Result)
+                    {
+                        MessageBox.Show("No internet connection, reactivate once connection is established..");
+                    }
+                    else
+                    {
+                        _ = StartUpSequence();
+                    }
+
                     Application.Run();
                 }
                 catch (Exception ex)
@@ -84,7 +99,7 @@ namespace Mari_Module
             #region Logger
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
-                .WriteTo.Console()
+                .WriteTo.Sink(RiverLog)
                 .CreateLogger();
 
             var logFactory = new LoggerFactory().AddSerilog();
@@ -203,6 +218,11 @@ namespace Mari_Module
             }
         }
 
+        public static void Die()
+        {
+            Application.Exit();
+        }
+
         static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
         {
             // This method will be called when an unhandled exception occurs
@@ -253,7 +273,7 @@ namespace Mari_Module
                 {
                     if (SlashComms._queueDictionary.Count > 1)
                     {
-                        Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                        Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                     }
                     else if (SlashComms._queueDictionary.Count == 1)
                     {
@@ -265,8 +285,8 @@ namespace Mari_Module
                             {
                                 var currentTrack = remainingList[0];
 
-                                Console.WriteLine("PLAYER IS PLAYING");
-                                Console.WriteLine($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
+                                Log.Information("PLAYER IS PLAYING");
+                                Log.Information($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
                                 await RpcHandler.UpdateUserStatus(client, "LISTENING", $"{currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
                             }
 
@@ -274,8 +294,8 @@ namespace Mari_Module
                     }
                     else
                     {
-                        Console.WriteLine("LEFT");
-                        await RpcHandler.UpdateUserStatus(client, "IDLE", "bocchi");
+                        Log.Information("LEFT");
+                        await RpcHandler.UpdateUserStatus(client, "LEFT");
                     }
 
                     var lava = client.GetLavalink();
@@ -298,12 +318,12 @@ namespace Mari_Module
 
                     if (SlashComms._queueDictionary.Count > 0)
                     {
-                        Console.WriteLine("Disconnected, Keeping alive.");
+                        Log.Information("Disconnected, Keeping alive.");
                         return;
                     }
 
                     disconnectionTimer = new System.Threading.Timer(TimerCallback, null, TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan);
-                    Console.WriteLine("Timer Started");
+                    Log.Information("Timer Started");
                 }
                 else
                 {
@@ -317,30 +337,30 @@ namespace Mari_Module
 
                             if (SlashComms._queueDictionary.Count > 1)
                             {
-                                Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                                Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                             }
                             else if (SlashComms._queueDictionary.Count == 1)
                             {
-                                Console.WriteLine("PLAYER IS PLAYING");
-                                Console.WriteLine($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
+                                Log.Information("PLAYER IS PLAYING");
+                                Log.Information($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
                                 await RpcHandler.UpdateUserStatus(client, "LISTENING", $"{currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
                             }
                             else
                             {
-                                Console.WriteLine("JOINED");
-                                await RpcHandler.UpdateUserStatus(client, "IDLE", "bocchi");
+                                Log.Information("JOINED");
+                                await RpcHandler.UpdateUserStatus(client, "JOINED");
                             }
                         }
                         else
                         {
                             if (SlashComms._queueDictionary.Count > 1)
                             {
-                                Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                                Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                             }
                             else
                             {
-                                Console.WriteLine("JOINED");
-                                await RpcHandler.UpdateUserStatus(client, "IDLE", "bocchi");
+                                Log.Information("JOINED");
+                                await RpcHandler.UpdateUserStatus(client, "JOINED");
                             }
                         }
                     }
@@ -348,12 +368,12 @@ namespace Mari_Module
                     {
                         if (SlashComms._queueDictionary.Count > 1)
                         {
-                            Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                            Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                         }
                         else
                         {
-                            Console.WriteLine("JOINED");
-                            await RpcHandler.UpdateUserStatus(client, "IDLE", "bocchi");
+                            Log.Information("JOINED");
+                            await RpcHandler.UpdateUserStatus(client, "JOINED");
                         }
                     }
                 }
@@ -374,11 +394,13 @@ namespace Mari_Module
                     lavalink.Close();
                     SlashComms._lavastarted = false;
                 }
-                Console.WriteLine("LAVALINK IS DISCONNECTED");
+                Log.Information("LAVALINK IS DISCONNECTED");
+                _ = RpcHandler.UpdateUserStatus(discord, "IDLE", "", false);
+                RpcHandler.UpdateRichBImage("boxsleep", "Shh.. she's asleep~");
             }
 
             RemoveDisconnectionTimer();
-            Console.WriteLine("Timer Ended");
+            Log.Information("Timer Ended");
         } //POTENTIAL SOURCE OF RANDOM "STATE" ERROR
 
         private static void RemoveDisconnectionTimer()
@@ -386,6 +408,24 @@ namespace Mari_Module
             // Dispose of the timer to remove it
             disconnectionTimer?.Dispose();
             disconnectionTimer = null;
+        }
+
+        public static async Task<bool> IsConnectedToInternet()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    var response = await client.GetAsync("http://www.google.com");
+                    WiFI_desu = response.IsSuccessStatusCode;
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            catch
+            {
+                WiFI_desu = false;
+                return false;
+            }
         }
     }
 }

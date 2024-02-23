@@ -1,11 +1,8 @@
-﻿using Alice;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using Mari_Module;
-using SpotifyAPI.Web;
-using System;
+using Serilog;
 using System.Text;
-using System.Threading.Tasks;
 using UnidecodeSharpCore;
 
 namespace Alice_Module.Handlers
@@ -37,7 +34,7 @@ namespace Alice_Module.Handlers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Information(ex.Message);
             }
         }
 
@@ -65,7 +62,7 @@ namespace Alice_Module.Handlers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Information(ex.Message);
             }
         }
 

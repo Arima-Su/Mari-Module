@@ -1,15 +1,11 @@
-﻿using System;
-using Alice.Commands;
+﻿using Alice.Commands;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.Lavalink;
-using System.Linq;
 using Alice_Module.Loaders;
-using System.Threading.Tasks;
-using Alice;
-using System.Collections.Generic;
 using Alice.Responses;
 using Mari_Module.Handlers;
+using Serilog;
 
 namespace Alice_Module.Handlers
 {
@@ -45,8 +41,9 @@ namespace Alice_Module.Handlers
                     {
                         node.ConnectAsync(channel);
                         SlashComms._ready = true;
-                        
-                        if(join)
+                        //RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
+
+                        if (join)
                         {
                             ctx.FollowUpAsync(SlashComms.ResponseBuilder("Thanks.."));
                         }
@@ -105,6 +102,7 @@ namespace Alice_Module.Handlers
                     {
                         node.ConnectAsync(channel);
                         SlashComms._ready = true;
+                        //RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
 
                         if (join)
                         {
@@ -285,14 +283,14 @@ namespace Alice_Module.Handlers
                     await ctx.Channel.SendMessageAsync($"Now Playing: {track.Title} {track.Author}");
                     PlaybackHandler.skipped = false;
 
-                    Console.WriteLine("PLAYER IS PLAYING");
+                    Log.Information("PLAYER IS PLAYING");
                     if (SlashComms._queueDictionary.Count > 1)
                     {
-                        Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                        Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                     }
                     else
                     {
-                        Console.WriteLine($"NOW PLAYING: {track.Title} {track.Author}");
+                        Log.Information($"NOW PLAYING: {track.Title} {track.Author}");
                     }
                     await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{track.Title} {track.Author}");
                 }
@@ -358,14 +356,14 @@ namespace Alice_Module.Handlers
                     await ctx.FollowUpAsync(SlashComms.ResponseBuilder($"Now Playing: {track.Title} {track.Author}"));
                     PlaybackHandler.skipped = false;
 
-                    Console.WriteLine("PLAYER IS PLAYING");
+                    Log.Information("PLAYER IS PLAYING");
                     if (SlashComms._queueDictionary.Count > 1)
                     {
-                        Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                        Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                     }
                     else
                     {
-                        Console.WriteLine($"NOW PLAYING: {track.Title} {track.Author}");
+                        Log.Information($"NOW PLAYING: {track.Title} {track.Author}");
                     }
                     await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{track.Title} {track.Author}");
                 }

@@ -11,6 +11,7 @@ using Alice_Module.Loaders;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 using System.Diagnostics;
+using Serilog;
 
 namespace Mari_Module.Handlers
 {
@@ -25,13 +26,13 @@ namespace Mari_Module.Handlers
 
         public static Task PlaybackErrorHandler(LavalinkGuildConnection sender, TrackExceptionEventArgs e)
         {
-            Console.WriteLine("I fumbled a song..");
+            Log.Information("I fumbled a song..");
             return Task.CompletedTask;
         }
 
         public static async Task RetryAsync(LavalinkGuildConnection conn, LavalinkTrack track)
         {
-            Console.WriteLine("Retried..");
+            Log.Information("Retried..");
             try
             {
                 skipped = true;
@@ -45,18 +46,18 @@ namespace Mari_Module.Handlers
                 if (SlashComms._queueDictionary.Count > 1)
                 {
                     await RpcHandler.UpdateUserStatus(Program.discord, "CONCURRENT", "backflip");
-                    Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                    Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                 }
                 else
                 {
                     await RpcHandler.UpdateUserStatus(Program.discord, "LISTENING", $"{track.Title} {track.Author}");
-                    Console.WriteLine($"NOW PLAYING: {track.Title} {track.Author}");
+                    Log.Information($"NOW PLAYING: {track.Title} {track.Author}");
                 }
                 skipped = false;
             }
             catch
             {
-                Console.WriteLine("Well that failed, I'll try that again..");
+                Log.Information("Well that failed, I'll try that again..");
                 await RetryAsync(conn, track);
             }
         }
@@ -120,7 +121,7 @@ namespace Mari_Module.Handlers
             {
                 if (freeplaylist.Contains(guild) && !reconlist.Contains(guild))
                 {
-                    Console.WriteLine("FREE BIRD YEAHH..");
+                    Log.Information("FREE BIRD YEAHH..");
                     await sender.Channel.SendMessageAsync("Hmmm.. let me see here..");
                     var youtube = new YoutubeClient();
 
@@ -173,14 +174,14 @@ namespace Mari_Module.Handlers
                         }
 
                         await progressMessage.ModifyAsync("Playlist loaded.");
-                        Console.WriteLine("Theoretically, it should be playing..");
+                        Log.Information("Theoretically, it should be playing..");
                         SlashComms._queueDictionary[guild].RemoveAt(0);
                         reconlist.Add(guild);
                     }
                     else
                     {
                         await sender.Channel.SendMessageAsync("I can't think of a next song to recommend..");
-                        Console.WriteLine("Could not get playlist");
+                        Log.Information("Could not get playlist");
                         SlashComms._queueDictionary[guild].RemoveAt(0);
                     }
 
@@ -204,8 +205,8 @@ namespace Mari_Module.Handlers
                             {
                                 SlashComms._queueDictionary[guild].RemoveAt(0);
                                 SlashComms._queueDictionary.Remove(guild);
-                                Console.WriteLine("SONG ENDED");
-                                Console.WriteLine("JOINED");
+                                Log.Information("SONG ENDED");
+                                Log.Information("JOINED");
                                 string? status = MessageHandler.GetRandomEntry("state");
 
                                 if (status == null || Program.discord == null)
@@ -213,7 +214,7 @@ namespace Mari_Module.Handlers
                                     return;
                                 }
 
-                                await RpcHandler.UpdateUserStatus(Program.discord, "IDLE", status);
+                                await RpcHandler.UpdateUserStatus(Program.discord, "JOINED");
                                 return;
                             }
                             else
@@ -240,12 +241,12 @@ namespace Mari_Module.Handlers
                                     if (SlashComms._queueDictionary.Count > 1)
                                     {
                                         await RpcHandler.UpdateUserStatus(Program.discord, "CONCURRENT", "backflip");
-                                        Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                                        Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                                     }
                                     else
                                     {
                                         await RpcHandler.UpdateUserStatus(Program.discord, "LISTENING", $"{nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
-                                        Console.WriteLine($"NOW PLAYING: {nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
+                                        Log.Information($"NOW PLAYING: {nextTrack.getTrack().Title} {nextTrack.getTrack().Author}");
                                     }
                                     skipped = false;
                                 }

@@ -14,6 +14,7 @@ using YoutubeExplode.Videos.Streams;
 using Alice_Module.Handlers;
 using Mari_Module;
 using Mari_Module.Handlers;
+using Serilog;
 
 namespace Alice_Module.Loaders
 {
@@ -100,7 +101,7 @@ namespace Alice_Module.Loaders
                             }
 
                             outputFilePath = Path.Combine("songs", $"{title}" + ".mp3");
-                            Console.WriteLine(outputFilePath);
+                            Log.Information(outputFilePath);
 
                             File.WriteAllBytes(outputFilePath, audioBytes);
 
@@ -109,7 +110,7 @@ namespace Alice_Module.Loaders
                                 try
                                 {
                                     //await save.SendAsync(ctx.Channel.Id, outputFilePath, title);
-                                    Console.WriteLine(ctx.Channel.Id);
+                                    Log.Information(ctx.Channel.Id.ToString());
                                 }
                                 catch (Exception ex)
                                 {
@@ -262,14 +263,14 @@ namespace Alice_Module.Loaders
                         await conn.PlayAsync(track);
 
                         await ctx.Channel.SendMessageAsync($"Now Playing: {track.Title} {track.Author}");
-                        Console.WriteLine("PLAYER IS PLAYING");
+                        Log.Information("PLAYER IS PLAYING");
                         if (SlashComms._queueDictionary.Count > 1)
                         {
-                            Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                            Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                         }
                         else
                         {
-                            Console.WriteLine($"NOW PLAYING: {track.Title} {track.Author}");
+                            Log.Information($"NOW PLAYING: {track.Title} {track.Author}");
                         }
                         PlaybackHandler.skipped = false;
                         await RpcHandler.UpdateUserStatus(Program.discord, "LISTENING", $"{track.Title} {track.Author}");
@@ -290,14 +291,14 @@ namespace Alice_Module.Loaders
                         await conn.PlayAsync(track);
 
                         await ctx.Channel.SendMessageAsync($"Now Playing: {track.Title} {track.Author}");
-                        Console.WriteLine("PLAYER IS PLAYING");
+                        Log.Information("PLAYER IS PLAYING");
                         if (SlashComms._queueDictionary.Count > 1)
                         {
-                            Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                            Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                         }
                         else
                         {
-                            Console.WriteLine($"NOW PLAYING: {track.Title} {track.Author}");
+                            Log.Information($"NOW PLAYING: {track.Title} {track.Author}");
                         }
                         PlaybackHandler.skipped = false;
                         await RpcHandler.UpdateUserStatus(Program.discord, "LISTENING", $"{track.Title} {track.Author}");

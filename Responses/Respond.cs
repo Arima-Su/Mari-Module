@@ -19,6 +19,7 @@ using NCalc;
 using System.Linq.Expressions;
 using Mari_Module.Handlers;
 using Mari_Module;
+using Serilog;
 
 namespace Alice.Responses
 {
@@ -55,10 +56,10 @@ namespace Alice.Responses
             
             if (e.Message.Author.IsBot && e.Message.Author.Username == "Alice")
             {
-                Console.WriteLine("I heard Alice..");
+                Log.Information("I heard Alice..");
                 if(e.Message.Content.Contains("IP:"))
                 {
-                    Console.WriteLine("She gave me another IP");
+                    Log.Information("She gave me another IP");
                     var commandPrefix = "IP: ";
                     var IP = e.Message.Content.Substring(commandPrefix.Length).Trim();
 
@@ -74,7 +75,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("load", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said load");
+                    Log.Information("She said load");
                     var guild = e.Guild;
                     var messageContent = e.Message.Content;
 
@@ -87,7 +88,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("play", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said play..");
+                    Log.Information("She said play..");
                     var guild = e.Guild;
                     var messageContent = e.Message.Content;
 
@@ -100,7 +101,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("skip", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said skip..");
+                    Log.Information("She said skip..");
                     var guild = e.Guild;
 
                     await DisComms.SkipMusic(client, e.Message, guild);
@@ -109,7 +110,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("np", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said np..");
+                    Log.Information("She said np..");
                     var guild = e.Guild;
 
                     await DisComms.NpMusic(client, e.Message, guild);
@@ -118,7 +119,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("q", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said q");
+                    Log.Information("She said q");
                     var guild = e.Guild;
 
                     await DisComms.QueueMusic(e.Message, guild);
@@ -127,7 +128,7 @@ namespace Alice.Responses
                 }
                 if (e.Message.Content.Contains("ps", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("She said ps");
+                    Log.Information("She said ps");
                     var guild = e.Guild;
                     var messageContent = e.Message.Content;
 
@@ -520,7 +521,7 @@ namespace Alice.Responses
                         catch (Exception ex)
                         {
                             await e.Message.Channel.SendMessageAsync("https://i.imgur.com/kNh7Qlo.png");
-                            Console.WriteLine(ex.Message);
+                            Log.Information(ex.Message);
                         }
                     }
 
@@ -561,7 +562,7 @@ namespace Alice.Responses
                         catch (Exception ex)
                         {
                             await e.Message.Channel.SendMessageAsync("https://i.imgur.com/kNh7Qlo.png");
-                            Console.WriteLine(ex.Message);
+                            Log.Information(ex.Message);
                         }
                     }
                 }
@@ -596,7 +597,7 @@ namespace Alice.Responses
 
             if (e.Message.Content.Contains("Photocopy", StringComparison.OrdinalIgnoreCase) && e.Message.Content.Contains("Bocchi", StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine("Alright, let me get the printer..");
+                Log.Information("Alright, let me get the printer..");
 
                 if (e.Message.Attachments.Count > 0)
                 {
@@ -665,53 +666,106 @@ namespace Alice.Responses
             {
                 try
                 {
-                    int start = -1;
-                    int end = -1;
+                    string msg = e.Message.Content;
+                    char[] msgcontents = msg.ToCharArray();
+                    var equation = new List<char>();
 
-                    for (int i = 0; i < e.Message.Content.Length; i++)
+                    //EXTRACT EQUATION FROM MSG
+                    for (int i = 0; i < msgcontents.Length; i++)
                     {
-                        if (char.IsDigit(e.Message.Content[i]))
+                        if (char.IsDigit(msgcontents[i]) || msgcontents[i] == '(' || msgcontents[i] == ')' || Validates.HasOperation(e.Message.Content[i]))
                         {
-                            start = i;
-                            for (int j = i; j < e.Message.Content.Length; j++)
-                            {
-                                if ((char.IsDigit(e.Message.Content[j])) || Validates.HasOperation(e.Message.Content[j]))
-                                {
-                                    end = j + 1;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-                            break;
+                            equation.Add(msgcontents[i]);
                         }
                     }
 
-                    if (start < 0 || end < 0)
+                    var log = new StringBuilder();
+
+                    for (int i = 0; i < equation.Count; i++)
                     {
-                        await e.Message.Channel.SendMessageAsync($"well this is wack..");
-                        return;
+                        log.Append(equation[i] + " ");
                     }
 
-                    Console.WriteLine($"String: {e.Message.Content.Length}, Start: {start}, End: {end}");
-                    var math = e.Message.Content.Substring(start, end - start);
-                    Console.WriteLine($"{math.Trim()} huh..");
-                    var expression = new NCalc.Expression(math).Evaluate();
+                    await e.Message.Channel.SendMessageAsync(log.ToString());
 
-                    await e.Message.Channel.SendMessageAsync($"I think the answer is: {expression}");
+                    //FORMAT EQUATION
+                    var numbers = new List<int>();
+                    var digits = new List<int>();
+
+                    for (int i = 0; i < equation.Count; i++)
+                    {
+                        int num = 0;
+
+                        while (char.IsDigit(equation[i]))
+                        {
+                            digits.Add((equation[i] - '0'));
+                        }
+
+                        for (int k = 0; k < digits.Count; k++)
+                        {
+                            //FIGURE OUT HOW TO 1 = 1; 2 = 10; 3 = 100; 4 = 1000
+                            int multiplier = 10 ^ (digits.Count - k);
+                            num += digits[k] * multiplier;
+                        }
+
+                        numbers.Add(num);
+                        await e.Message.Channel.SendMessageAsync(num.ToString());
+                    }
                 }
                 catch (Exception ex)
                 {
-                    await e.Message.Channel.SendMessageAsync($"{GetRandomEntry("Nanis")} Your math is not mathing bro.. ");
-                    Console.WriteLine(ex);
+                    await e.Message.Channel.SendMessageAsync(ex.ToString());
                 }
+
+                //try
+                //{
+                //    int start = -1;
+                //    int end = -1;
+
+                //    for (int i = 0; i < e.Message.Content.Length; i++)
+                //    {
+                //        if (char.IsDigit(e.Message.Content[i]))
+                //        {
+                //            start = i;
+                //            for (int j = i; j < e.Message.Content.Length; j++)
+                //            {
+                //                if ((char.IsDigit(e.Message.Content[j])) || Validates.HasOperation(e.Message.Content[j]))
+                //                {
+                //                    end = j + 1;
+                //                }
+                //                else
+                //                {
+                //                    break;
+                //                }
+                //            }
+                //            break;
+                //        }
+                //    }
+
+                //    if (start < 0 || end < 0)
+                //    {
+                //        await e.Message.Channel.SendMessageAsync($"well this is wack..");
+                //        return;
+                //    }
+
+                //    Log.Information($"String: {e.Message.Content.Length}, Start: {start}, End: {end}");
+                //    var math = e.Message.Content.Substring(start, end - start);
+                //    Log.Information($"{math.Trim()} huh..");
+                //    var expression = new NCalc.Expression(math).Evaluate();
+
+                //    await e.Message.Channel.SendMessageAsync($"I think the answer is: {expression}");
+                //}
+                //catch (Exception ex)
+                //{
+                //    await e.Message.Channel.SendMessageAsync($"{GetRandomEntry("Nanis")} Your math is not mathing bro.. ");
+                //    Log.Information(ex);
+                //}
             }
 
             #region Cursed Image Generator
             //if (e.Message.Content.Contains("Photocopy", StringComparison.OrdinalIgnoreCase))
             //{
-            //    Console.WriteLine("Alright, let me get the printer..");
+            //    Log.Information("Alright, let me get the printer..");
 
             //    if (e.Message.Attachments.Count > 0)
             //    {

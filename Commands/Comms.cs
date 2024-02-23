@@ -1,26 +1,18 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Lavalink;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Alice.Responses;
 using DSharpPlus.Net;
 using Alice_Module.Loaders;
 using YoutubeExplode;
-using System.IO;
 using YoutubeExplode.Videos.Streams;
 using Alice_Module.Handlers;
 using System.Text;
 using AngleSharp.Text;
-using System.Windows.Forms;
-using Discord;
-using SpotifyAPI.Web;
-using DSharpPlus.EventArgs;
 using System.Xml.Linq;
 using Mari_Module.Handlers;
 using Mari_Module;
+using Serilog;
 
 namespace Alice.Commands
 {
@@ -33,6 +25,7 @@ namespace Alice.Commands
             if (res != null)
             {
                 await ctx.Channel.SendMessageAsync(res);
+                await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                 return;
             }
         }
@@ -246,7 +239,7 @@ namespace Alice.Commands
 
             SlashComms._lavastarted = false;
             await ctx.Channel.SendMessageAsync("A gun was fired at the player, the queue is in pieces..");
-            Console.WriteLine("LAVALINK IS DISCONNECTED");
+            Log.Information("LAVALINK IS DISCONNECTED");
         }
         */
         [Command("queue"), Aliases("q")]
@@ -415,10 +408,11 @@ namespace Alice.Commands
                     PlaybackHandler.skipped = false;
                     SlashComms._queueDictionary.Remove(guild);
                     await conn.DisconnectAsync();
+                    await RpcHandler.UpdateUserStatus(ctx.Client, "LEFT");
                 }
                 else
                 {
-                    Console.WriteLine("No entries found for the specified category.");
+                    Log.Information("No entries found for the specified category.");
                 }
             }
         }
@@ -470,7 +464,7 @@ namespace Alice.Commands
                 {
                     var tune = SlashComms._queueDictionary[guild][0];
                     await ctx.Channel.SendMessageAsync($"Removed {tune.getTrack().Title} {tune.getTrack().Author}");
-                    await RpcHandler.UpdateUserStatus(ctx.Client, "IDLE", "bocchi");
+                    await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                     SlashComms._queueDictionary.Remove(guild);
                     await conn.StopAsync();
                     return;
@@ -487,11 +481,11 @@ namespace Alice.Commands
                 await ctx.Channel.SendMessageAsync($"Eliminated {trackTitle} {track.getTrack().Author}");
                 if (SlashComms._queueDictionary.Count > 1)
                 {
-                    Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                    Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                 }
                 else
                 {
-                    Console.WriteLine($"NOW PLAYING: {track.getTrack().Title} {track.getTrack().Author}");
+                    Log.Information($"NOW PLAYING: {track.getTrack().Title} {track.getTrack().Author}");
                 }
                 await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{track.getTrack().Title} {track.getTrack().Author}");
                 PlaybackHandler.skipped = false;
@@ -544,11 +538,11 @@ namespace Alice.Commands
             await ctx.Channel.SendMessageAsync($"Now Playing: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
             if (SlashComms._queueDictionary.Count > 1)
             {
-                Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
             }
             else
             {
-                Console.WriteLine($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
+                Log.Information($"NOW PLAYING: {currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
             }
             await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{currentTrack.getTrack().Title} {currentTrack.getTrack().Author}");
             PlaybackHandler.skipped = false;
@@ -609,7 +603,7 @@ namespace Alice.Commands
             {
                 var track = SlashComms._queueDictionary[guild][0];
                 await ctx.Channel.SendMessageAsync($"Skipped {track.getTrack().Title} {track.getTrack().Author}");
-                await RpcHandler.UpdateUserStatus(ctx.Client, "IDLE", "bocchi");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "JOINED");
                 SlashComms._queueDictionary.Remove(guild);
                 await conn.StopAsync();
                 return;
@@ -629,11 +623,11 @@ namespace Alice.Commands
                 PlaybackHandler.skipped = false;
                 if (SlashComms._queueDictionary.Count > 1)
                 {
-                    Console.WriteLine($"CONCURRENT: {SlashComms._queueDictionary.Count}");
+                    Log.Information($"CONCURRENT: {SlashComms._queueDictionary.Count}");
                 }
                 else
                 {
-                    Console.WriteLine($"NOW PLAYING: {nextTrackTitle} {nextTrack.getTrack().Author}");
+                    Log.Information($"NOW PLAYING: {nextTrackTitle} {nextTrack.getTrack().Author}");
                 }
                 await RpcHandler.UpdateUserStatus(ctx.Client, "LISTENING", $"{nextTrackTitle} {nextTrack.getTrack().Author}");
             }
@@ -653,7 +647,7 @@ namespace Alice.Commands
         }
 
         [Command("start")]
-        public async Task StartCommand(CommandContext ctx)
+        public async Task StartCommand(CommandContext ctx, bool cooked = false)
         {
             if(SlashComms._lavastarted)
             {
@@ -663,7 +657,11 @@ namespace Alice.Commands
 
             try
             {
-                await ctx.Channel.SendMessageAsync("Ooh, its starting up..");
+                if (!cooked)
+                {
+                    await ctx.Channel.SendMessageAsync("Ooh, its starting up..");
+                    await RpcHandler.UpdateUserStatus(ctx.Client, "STARTING", "", false);
+                }
 
                 var endpoint = new ConnectionEndpoint
                 {
@@ -693,13 +691,15 @@ namespace Alice.Commands
                 node.TrackException += PlaybackHandler.PlaybackErrorHandler;
 
                 await ctx.Channel.SendMessageAsync("Oop, it's running.. there it goes..");
-                Console.WriteLine("LAVALINK IS CONNECTED");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "READY", "", false);
+                Log.Information("LAVALINK IS CONNECTED");
             }
             catch
             {
-                Console.WriteLine("LAVALINK IS STARTING");
+                Log.Information("LAVALINK IS STARTING");
+                await RpcHandler.UpdateUserStatus(ctx.Client, "STARTING", "", false);
                 await PlaybackHandler.StartLava();
-                await StartCommand(ctx);
+                await StartCommand(ctx, true);
 
                 if (SlashComms._failed == true)
                 {
@@ -891,7 +891,7 @@ namespace Alice.Commands
             }
             catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Information(ex.Message);
             }
 
             PlaybackHandler.forcestop = false;
@@ -1134,7 +1134,7 @@ namespace Alice.Commands
                             }
 
                             outputFilePath = Path.Combine("songs", $"{title}" + ".mp3");
-                            Console.WriteLine(outputFilePath);
+                            Log.Information(outputFilePath);
 
                             File.WriteAllBytes(outputFilePath, audioBytes);
 
@@ -1143,7 +1143,7 @@ namespace Alice.Commands
                                 try
                                 {
                                     await save.SendAsync(ctx.Channel.Id, outputFilePath, title);
-                                    Console.WriteLine(ctx.Channel.Id);
+                                    Log.Information(ctx.Channel.Id.ToString());
                                 }
                                 catch (Exception ex)
                                 {

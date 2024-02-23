@@ -1,15 +1,12 @@
 ﻿using DSharpPlus.Entities;
 using DSharpPlus.Lavalink;
 using DSharpPlus;
-using System.Threading.Tasks;
-using System.Linq;
 using RconSharp;
 using Alice_Module.Loaders;
-using System;
-using System.Collections.Generic;
 using Alice_Module.Handlers;
 using Mari_Module.Handlers;
 using Mari_Module;
+using Serilog;
 
 namespace Alice.Commands
 {
@@ -506,7 +503,7 @@ namespace Alice.Commands
 
                 if (port == null)
                 {
-                    Console.WriteLine("In-game messaging service failed");
+                    Log.Information("In-game messaging service failed");
                     return;
                 }
 
@@ -524,7 +521,7 @@ namespace Alice.Commands
             }
             catch
             {
-                Console.WriteLine("In-game messaging service failed");
+                Log.Information("In-game messaging service failed");
                 return;
             }
         }
