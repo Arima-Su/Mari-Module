@@ -52,8 +52,8 @@ namespace Alice.Responses
 
         public static async Task MessageCreatedHandler(DiscordClient client, MessageCreateEventArgs e)
         {
-            // ALICE LISTENER
-            
+            #region Alice Listener
+
             if (e.Message.Author.IsBot && e.Message.Author.Username == "Alice")
             {
                 Log.Information("I heard Alice..");
@@ -145,9 +145,9 @@ namespace Alice.Responses
             {
                 return;
             }
+            #endregion
 
-            // DETECTORS
-
+            #region Detectors
             static bool _IsGreeting(string msg)
             {
                 List<string> List = new List<string>
@@ -160,6 +160,8 @@ namespace Alice.Responses
                               "Greetings",
                               "Konnichiwa",
                               "Konnichi-what's up",
+                              "What's up",
+                              "Whats up",
                               "Ohayo",
                               "Haru"
                     };
@@ -174,10 +176,12 @@ namespace Alice.Responses
                     {
                               "Good",
                               "Nice",
+                              "Naisu",
                               "Nice job",
                               "Good job",
                               "Naisu",
                               "Thanks",
+                              "Thank",
                               "Great",
                               "Great job",
                               "Rock",
@@ -199,6 +203,7 @@ namespace Alice.Responses
                               "Curse",
                               "Curse you",
                               "Dang it",
+                              "Dangit",
                               "Damn",
                               "Biased",
                               "Frick",
@@ -215,8 +220,9 @@ namespace Alice.Responses
 
                 return Regex.IsMatch(msg, pattern, RegexOptions.IgnoreCase);
             }
+            #endregion
 
-            // BOCCHI RESPONSES
+            #region Reactions
             if (Program.username == null)
             {
                 return;
@@ -257,8 +263,7 @@ namespace Alice.Responses
                             }
                         }
                     }
-
-                    if (_IsGreeting(Suf))
+                    else if (_IsGreeting(Suf))
                     {
                         string category = "Greetings";
 
@@ -280,8 +285,7 @@ namespace Alice.Responses
                             }
                         }
                     }
-
-                    if (_IsComplement(Pre))
+                    else if (_IsComplement(Pre))
                     {
                         string category = "Happy_Reacts";
 
@@ -303,8 +307,7 @@ namespace Alice.Responses
                             }
                         }
                     }
-
-                    if (_IsComplement(Suf))
+                    else if (_IsComplement(Suf))
                     {
                         string category = "Happy_Reacts";
 
@@ -326,8 +329,7 @@ namespace Alice.Responses
                             }
                         }
                     }
-
-                    if (_IsInsult(Pre))
+                    else if (_IsInsult(Pre))
                     {
                         string category = "Sad_Reacts";
 
@@ -349,8 +351,7 @@ namespace Alice.Responses
                             }
                         }
                     }
-
-                    if (_IsInsult(Suf))
+                    else if (_IsInsult(Suf))
                     {
                         string category = "Sad_Reacts";
 
@@ -370,6 +371,15 @@ namespace Alice.Responses
                                 await e.Message.Channel.SendMessageAsync(Entry);
                                 return;
                             }
+                        }
+                    }
+                    else
+                    {
+                        string? What = GetRandomEntry("Nanis");
+
+                        if (What != null)
+                        {
+                            await e.Message.Channel.SendMessageAsync(What);
                         }
                     }
                 }
@@ -385,6 +395,9 @@ namespace Alice.Responses
                 }
             }
 
+            #endregion
+
+            #region Alice
             if (e.Message.Content.Contains("Alice", StringComparison.OrdinalIgnoreCase))
             {
 
@@ -431,7 +444,9 @@ namespace Alice.Responses
                     await e.Message.Channel.SendMessageAsync("Uhh.. She isn't here, Alice likes to stay at the canteen..");
                 }
             }
+            #endregion
 
+            #region Keywords
             if (e.Message.Content.Contains("Kita", StringComparison.OrdinalIgnoreCase))
             {
                 string category = "kita";
@@ -474,6 +489,13 @@ namespace Alice.Responses
                 await e.Message.Channel.SendMessageAsync("Baka~");
             }
 
+            if (e.Message.Content.Contains("Bocchi", StringComparison.OrdinalIgnoreCase) && e.Message.Content.Contains("Tank", StringComparison.OrdinalIgnoreCase))
+            {
+                await e.Message.Channel.SendMessageAsync("https://i.imgur.com/ept6Eh1.jpeg");
+            }
+            #endregion
+
+            #region GIFS
             if (e.Message.Content.Contains("So cool", StringComparison.OrdinalIgnoreCase))
             {
                 string input = e.Message.Content;
@@ -594,7 +616,9 @@ namespace Alice.Responses
                     return;
                 }
             }
+#endregion
 
+            #region Photocopy
             if (e.Message.Content.Contains("Photocopy", StringComparison.OrdinalIgnoreCase) && e.Message.Content.Contains("Bocchi", StringComparison.OrdinalIgnoreCase))
             {
                 Log.Information("Alright, let me get the printer..");
@@ -661,7 +685,9 @@ namespace Alice.Responses
                     await e.Message.Channel.SendMessageAsync("Photocopy *what* exactly?");
                 }
             }
+            #endregion
 
+            #region Solve
             if (e.Message.Content.Contains("solve", StringComparison.OrdinalIgnoreCase) && e.Message.Content.Any(char.IsDigit) && Validates.HasOperation(e.Message.Content))
             {
                 try
@@ -761,6 +787,7 @@ namespace Alice.Responses
                 //    Log.Information(ex);
                 //}
             }
+            #endregion
 
             #region Cursed Image Generator
             //if (e.Message.Content.Contains("Photocopy", StringComparison.OrdinalIgnoreCase))
