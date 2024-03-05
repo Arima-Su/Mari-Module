@@ -14,6 +14,7 @@ namespace Mari_Module
         private static bool running = false;
         private static bool updating = false;
         private bool isDragging;
+        private bool locked = false;
         private Point lastLocation;
 
         public Form1()
@@ -245,11 +246,25 @@ namespace Mari_Module
 
         private void label4_MouseLeave(object sender, EventArgs e)
         {
-            running = false;
-            textBox1.Visible = false;
-            textBox1.Clear();
+            if (!locked)
+            {
+                running = false;
+                textBox1.Visible = false;
+                textBox1.Clear();
+            }
         }
 
+        private void label4_Click(object sender, EventArgs e)
+        {
+            if (!locked)
+            {
+                locked = true;
+            }
+            else
+            {
+                locked = false;
+            }
+        }
         #endregion
 
         #region Updates
@@ -344,11 +359,7 @@ namespace Mari_Module
         }
         #endregion
 
-        private void panel1_MouseEnter(object sender, EventArgs e)
-        {
-            panel1.BackColor = Color.PaleTurquoise;
-        }
-
+        #region UI
         private void panel1_MouseLeave(object sender, EventArgs e)
         {
             panel1.BackColor = Color.FromArgb(0, 15, 25);
@@ -373,5 +384,39 @@ namespace Mari_Module
                 this.Location = new Point(this.Location.X + delta.X, this.Location.Y + delta.Y);
             }
         }
+
+        private void Form1_MouseDown(object sender, MouseEventArgs e)
+        { 
+            lastLocation = e.Location;
+
+            Rectangle controlArea = new Rectangle(90, 0, 460, 40);
+
+            if (controlArea.Contains(e.Location))
+            {
+                isDragging = true;
+                panel1.BackColor = Color.PaleTurquoise;
+            }
+        }
+
+        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        {
+            isDragging = false;
+            panel1.BackColor = Color.FromArgb(0, 15, 25);
+        }
+
+        private void Form1_MouseMove_1(object sender, MouseEventArgs e)
+        {
+            Rectangle controlArea = new Rectangle(90, 0, 460, 40);
+
+            if (controlArea.Contains(e.Location))
+            {
+                if (isDragging)
+                {
+                    Point delta = new Point(e.Location.X - lastLocation.X, e.Location.Y - lastLocation.Y);
+                    this.Location = new Point(this.Location.X + delta.X, this.Location.Y + delta.Y);
+                }
+            }
+        }
+        #endregion
     }
 }

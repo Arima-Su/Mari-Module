@@ -97,6 +97,7 @@
             label4.Size = new Size(31, 35);
             label4.TabIndex = 4;
             label4.Text = "•";
+            label4.Click += label4_Click;
             label4.MouseEnter += label4_MouseEnter;
             label4.MouseLeave += label4_MouseLeave;
             // 
@@ -124,7 +125,6 @@
             panel1.TabIndex = 7;
             panel1.Visible = false;
             panel1.MouseDown += panel1_MouseDown;
-            panel1.MouseEnter += panel1_MouseEnter;
             panel1.MouseLeave += panel1_MouseLeave;
             panel1.MouseMove += panel1_MouseMove;
             panel1.MouseUp += panel1_MouseUp;
@@ -151,6 +151,9 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Mirror";
             FormClosing += Form1_FormClosing;
+            MouseDown += Form1_MouseDown;
+            MouseMove += Form1_MouseMove_1;
+            MouseUp += Form1_MouseUp;
             ResumeLayout(false);
             PerformLayout();
         }
