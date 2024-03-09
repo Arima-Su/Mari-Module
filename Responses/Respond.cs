@@ -12,14 +12,15 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Alice_Module.Handlers;
 using SkiaSharp;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 using Alice_Module.Loaders;
 using NCalc;
 using System.Linq.Expressions;
 using Mari_Module.Handlers;
 using Mari_Module;
 using Serilog;
+using System.Drawing.Imaging;
+using static System.Net.Mime.MediaTypeNames;
+using System.Drawing.Text;
 
 namespace Alice.Responses
 {
@@ -220,6 +221,18 @@ namespace Alice.Responses
 
                 return Regex.IsMatch(msg, pattern, RegexOptions.IgnoreCase);
             }
+
+            static bool _IsCommand(string msg)
+            {
+                List<string> List = new List<string>
+                    {
+                              "Photocopy",
+                              "Solve"
+                    };
+                string pattern = $@"\b(?:{string.Join("|", List.Select(Regex.Escape))})\b";
+
+                return Regex.IsMatch(msg, pattern, RegexOptions.IgnoreCase);
+            }
             #endregion
 
             #region Reactions
@@ -373,6 +386,10 @@ namespace Alice.Responses
                             }
                         }
                     }
+                    else if (_IsCommand(Suf) || _IsCommand(Pre))
+                    {
+                        Console.WriteLine("I'll let the other logic catch this one..");
+                    }
                     else
                     {
                         string? What = GetRandomEntry("Nanis");
@@ -463,6 +480,22 @@ namespace Alice.Responses
                 }
             }
 
+            if (e.Message.Content.Contains(" Ubel", StringComparison.OrdinalIgnoreCase))
+            {
+                string category = "ubel";
+
+                string? randomEntry = GetRandomEntry(category);
+
+                if (randomEntry != null)
+                {
+                    await e.Message.Channel.SendMessageAsync(randomEntry);
+                }
+                else
+                {
+                    await e.Message.Channel.SendMessageAsync("No entries found for the specified category.");
+                }
+            }
+
             if (e.Message.Content.Contains("Congrats", StringComparison.OrdinalIgnoreCase))
             {
                 string category = "Celebrative_Reacts";
@@ -508,35 +541,24 @@ namespace Alice.Responses
                 {
                     if (Program.username.Value == "Bocchi")
                     {
-                        var file = SKBitmap.Decode(Path.Combine("assets", "bocchinn.png"));
+                        var file = Path.Combine("assets", "bocchinn.png");
                         var cooledfile = Path.Combine("assets", "bocchinn_cooled.png");
 
                         try
                         {
-                            using (var surface = SKSurface.Create(new SKImageInfo(file.Width, file.Height)))
+                            Bitmap inputImage = new Bitmap(file);
+
+                            using (Graphics graphics = Graphics.FromImage(inputImage))
                             {
-                                using (SKCanvas canvas = surface.Canvas)
+                                using (Font font = new Font(LoadFont("unispace.ttf"), 40))
+                                using (SolidBrush brush = new SolidBrush(Color.Gold))
                                 {
-                                    canvas.DrawBitmap(file, 0, 0);
-
-                                    using (SKPaint paint = new SKPaint())
-                                    {
-                                        paint.Color = SKColors.Gold;
-                                        paint.TextSize = 40.0f;
-                                        paint.Typeface = SKTypeface.FromFile("unispace.ttf");
-                                        var point = new SKPoint(340, 746);
-                                        canvas.DrawText(extractedText, point, paint);
-                                    }
-
-                                }
-
-                                using (var coolfile = surface.Snapshot())
-                                using (var data = coolfile.Encode(SKEncodedImageFormat.Png, 100))
-                                using (var stream = File.OpenWrite(cooledfile))
-                                {
-                                    data.SaveTo(stream);
+                                    Point textLocation = new Point(330, 690);
+                                    graphics.DrawString(extractedText, font, brush, textLocation);
                                 }
                             }
+
+                            inputImage.Save(cooledfile, System.Drawing.Imaging.ImageFormat.Png);
 
                             await save.SendSilentAsync(e.Channel.Id, cooledfile);
                         }
@@ -549,35 +571,24 @@ namespace Alice.Responses
 
                     if (Program.username.Value == "Cirno")
                     {
-                        var file = SKBitmap.Decode(Path.Combine("assets", "chirumiru.png"));
+                        var file = Path.Combine("assets", "chirumiru.png");
                         var cooledfile = Path.Combine("assets", "chirumiru_cooled.png");
 
                         try
                         {
-                            using (var surface = SKSurface.Create(new SKImageInfo(file.Width, file.Height)))
+                            Bitmap inputImage = new Bitmap(file);
+
+                            using (Graphics graphics = Graphics.FromImage(inputImage))
                             {
-                                using (SKCanvas canvas = surface.Canvas)
+                                using (Font font = new Font(LoadFont("unispace.ttf"), 40))
+                                using (SolidBrush brush = new SolidBrush(Color.Gold))
                                 {
-                                    canvas.DrawBitmap(file, 0, 0);
-
-                                    using (SKPaint paint = new SKPaint())
-                                    {
-                                        paint.Color = SKColors.Gold;
-                                        paint.TextSize = 40.0f;
-                                        paint.Typeface = SKTypeface.FromFile("unispace.ttf");
-                                        var point = new SKPoint(340, 746);
-                                        canvas.DrawText(extractedText, point, paint);
-                                    }
-
-                                }
-
-                                using (var coolfile = surface.Snapshot())
-                                using (var data = coolfile.Encode(SKEncodedImageFormat.Png, 100))
-                                using (var stream = File.OpenWrite(cooledfile))
-                                {
-                                    data.SaveTo(stream);
+                                    Point textLocation = new Point(330, 690);
+                                    graphics.DrawString(extractedText, font, brush, textLocation);
                                 }
                             }
+
+                            inputImage.Save(cooledfile, System.Drawing.Imaging.ImageFormat.Png);
 
                             await save.SendSilentAsync(e.Channel.Id, cooledfile);
                         }
@@ -588,6 +599,14 @@ namespace Alice.Responses
                         }
                     }
                 }
+            }
+
+            static FontFamily LoadFont(string path)
+            {
+                // Load a custom font from file
+                PrivateFontCollection fontCollection = new PrivateFontCollection();
+                fontCollection.AddFontFile(path);
+                return fontCollection.Families[0];
             }
 
             if (e.Message.Content.Contains("Pipebomb", StringComparison.OrdinalIgnoreCase))
@@ -655,18 +674,28 @@ namespace Alice.Responses
 
                             try
                             {
-                                using (var image = SixLabors.ImageSharp.Image.Load(printedfile))
+                                Bitmap inputImage = new Bitmap(Path.Combine("assets", "printedfile.png"));
+
+                                // Threshold brightness level (adjust as needed)
+                                int threshold = 128;
+
+                                for (int x = 0; x < inputImage.Width; x++)
                                 {
-                                    image.Mutate(x => x.Grayscale());
+                                    for (int y = 0; y < inputImage.Height; y++)
+                                    {
+                                        Color pixelColor = inputImage.GetPixel(x, y);
+                                        int brightness = (int)(0.299 * pixelColor.R + 0.587 * pixelColor.G + 0.114 * pixelColor.B);
 
-                                    image.Mutate(x => x.BinaryThreshold(0.42f));
-
-                                    image.Save(coolprinterfile);
+                                        Color newColor = brightness < threshold ? Color.Black : Color.White;
+                                        inputImage.SetPixel(x, y, newColor);
+                                    }
                                 }
+
+                                inputImage.Save(coolprinterfile);
                             }
                             catch (Exception ex)
                             {
-                                await e.Channel.SendMessageAsync($"Scanner error: {ex}");
+                                await e.Channel.SendMessageAsync($"Printer error: {ex}");
                                 return;
                             }
 
