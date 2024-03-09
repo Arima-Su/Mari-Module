@@ -480,7 +480,7 @@ namespace Alice.Responses
                 }
             }
 
-            if (e.Message.Content.Contains(" Ubel", StringComparison.OrdinalIgnoreCase))
+            if (e.Message.Content.Contains("Ubel", StringComparison.OrdinalIgnoreCase))
             {
                 string category = "ubel";
 
